@@ -1,0 +1,33 @@
+# Downloaded FEC data (large files)
+data/raw/
+data/extracted/
+data/*.duckdb
+data/exports/
+
+# DBT build artifacts
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Evidence.dev
+evidence/node_modules/
+evidence/.evidence/
+evidence/build/
+
+# OS
+.DS_Store
+Thumbs.db
+logs

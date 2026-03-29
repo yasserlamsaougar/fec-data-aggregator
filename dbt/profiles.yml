@@ -1,0 +1,7 @@
+fec_pipeline:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('FEC_DB_PATH', '../data/fec.duckdb') }}"
+      threads: 4

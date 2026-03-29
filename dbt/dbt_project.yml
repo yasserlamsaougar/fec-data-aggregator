@@ -1,0 +1,29 @@
+name: fec_pipeline
+version: "1.0.0"
+config-version: 2
+
+profile: fec_pipeline
+
+model-paths: ["models"]
+seed-paths:  ["seeds"]
+test-paths:  ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  fec_pipeline:
+    staging:
+      +schema: staging
+      +materialized: view
+    intermediate:
+      +schema: intermediate
+      +materialized: table
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  fec_pipeline:
+    +schema: seeds

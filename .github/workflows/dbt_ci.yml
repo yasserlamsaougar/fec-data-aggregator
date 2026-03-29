@@ -1,0 +1,76 @@
+name: DBT CI
+
+# Validates DBT SQL on every push/PR — fast, no data download needed.
+# Catches syntax errors, broken refs, and schema issues before merge.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dbt/**"
+      - "requirements.txt"
+  pull_request:
+    paths:
+      - "dbt/**"
+      - "requirements.txt"
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  dbt-validate:
+    name: Validate DBT models
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create empty DuckDB for validation
+        run: |
+          mkdir -p data
+          python - <<'EOF'
+          import duckdb
+          conn = duckdb.connect("data/fec.duckdb")
+          conn.execute("CREATE SCHEMA IF NOT EXISTS raw")
+          # Create empty raw tables so DBT sources resolve without data
+          raw_tables = {
+              "individual_contributions": "sub_id VARCHAR, cmte_id VARCHAR, name VARCHAR, city VARCHAR, state VARCHAR, zip_code VARCHAR, employer VARCHAR, occupation VARCHAR, transaction_dt VARCHAR, transaction_amt VARCHAR, transaction_tp VARCHAR, entity_tp VARCHAR, transaction_pgi VARCHAR, other_id VARCHAR, tran_id VARCHAR, memo_cd VARCHAR, memo_text VARCHAR, amndt_ind VARCHAR, rpt_tp VARCHAR, image_num VARCHAR, file_num VARCHAR",
+              "pac_contributions": "sub_id VARCHAR, cmte_id VARCHAR, cand_id VARCHAR, name VARCHAR, city VARCHAR, state VARCHAR, zip_code VARCHAR, employer VARCHAR, occupation VARCHAR, transaction_dt VARCHAR, transaction_amt VARCHAR, transaction_tp VARCHAR, entity_tp VARCHAR, transaction_pgi VARCHAR, other_id VARCHAR, tran_id VARCHAR, memo_cd VARCHAR, memo_text VARCHAR, amndt_ind VARCHAR, rpt_tp VARCHAR, image_num VARCHAR, file_num VARCHAR",
+              "candidates": "cand_id VARCHAR, cand_name VARCHAR, cand_pty_affiliation VARCHAR, cand_election_yr VARCHAR, cand_office_st VARCHAR, cand_office VARCHAR, cand_office_district VARCHAR, cand_ici VARCHAR, cand_status VARCHAR, cand_pcc VARCHAR, cand_st1 VARCHAR, cand_st2 VARCHAR, cand_city VARCHAR, cand_st VARCHAR, cand_zip VARCHAR",
+              "committees": "cmte_id VARCHAR, cmte_nm VARCHAR, tres_nm VARCHAR, cmte_st1 VARCHAR, cmte_st2 VARCHAR, cmte_city VARCHAR, cmte_st VARCHAR, cmte_zip VARCHAR, cmte_dsgn VARCHAR, cmte_tp VARCHAR, cmte_pty_affiliation VARCHAR, cmte_filing_freq VARCHAR, org_tp VARCHAR, connected_org_nm VARCHAR, cand_id VARCHAR",
+              "candidate_committee_linkage": "cand_id VARCHAR, cand_election_yr VARCHAR, fec_election_yr VARCHAR, cmte_id VARCHAR, cmte_tp VARCHAR, cmte_dsgn VARCHAR, linkage_id VARCHAR",
+              "opensecrets_committees": 'cycle VARCHAR, fec_id VARCHAR, pac_short VARCHAR, affiliate VARCHAR, ultorg VARCHAR, recip_id VARCHAR, recip_code VARCHAR, fec_cand_id VARCHAR, party VARCHAR, prim_code VARCHAR, source VARCHAR, sensitive VARCHAR, "foreign" VARCHAR, active VARCHAR, cycle_year INTEGER, source_file VARCHAR',
+              "candidate_financial_summary": "cand_id VARCHAR, cand_name VARCHAR, cand_ici VARCHAR, pty_cd VARCHAR, cand_pt_st VARCHAR, net_ope_exp VARCHAR, net_con VARCHAR, tot_rec VARCHAR, tot_dis VARCHAR, cas_on_han_beg_of_per VARCHAR, cas_on_han_clo_of_per VARCHAR, dbt_owe_by_com VARCHAR, ind_ite_con VARCHAR, ind_uni_con VARCHAR, ind_con VARCHAR, par_com_con VARCHAR, oth_com_con VARCHAR, can_con VARCHAR, tot_loa VARCHAR, tot_off_exp VARCHAR, oft_to_ope_exp VARCHAR, exe_leg_acc_dis VARCHAR, fun_dis VARCHAR, off_to_fun_dis VARCHAR, tot_loa_rep VARCHAR, can_loa_rep VARCHAR, oth_loa_rep VARCHAR, tot_con_ref VARCHAR, ind_ref VARCHAR, par_com_ref VARCHAR, oth_com_ref VARCHAR, end_ima VARCHAR, cov_sta_dat VARCHAR, cov_end_dat VARCHAR, fec_election_yr VARCHAR, cycle_year INTEGER, source_file VARCHAR",
+          }
+          for table, schema in raw_tables.items():
+              conn.execute(f"CREATE TABLE IF NOT EXISTS raw.{table} ({schema})")
+          conn.close()
+          print("Empty DuckDB schema created for DBT validation.")
+          EOF
+
+      - name: DBT parse (validate all SQL)
+        working-directory: dbt
+        env:
+          FEC_DB_PATH: "../data/fec.duckdb"
+        run: dbt parse --profiles-dir .
+
+      - name: DBT compile (resolve all refs and sources)
+        working-directory: dbt
+        env:
+          FEC_DB_PATH: "../data/fec.duckdb"
+        run: dbt compile --profiles-dir .
+
+      - name: Upload compiled SQL (for review in PRs)
+        uses: actions/upload-artifact@v4
+        with:
+          name: dbt-compiled-sql
+          path: dbt/target/compiled/
+          retention-days: 7

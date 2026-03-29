@@ -1,0 +1,171 @@
+name: FEC Data Pipeline
+
+on:
+  # Run monthly on the 1st — FEC publishes updates continuously
+  schedule:
+    - cron: "0 4 1 * *"
+
+  # Manual trigger: choose which cycle(s) to run
+  workflow_dispatch:
+    inputs:
+      cycles:
+        description: "Election cycle years (space-separated, e.g. '2024 2022')"
+        required: false
+        default: "2024"
+      file_types:
+        description: "FEC file types to download (space-separated). Leave blank for all."
+        required: false
+        default: "indiv pas2 cn cm ccl weball"
+      skip_download:
+        description: "Skip download step (use cached data)"
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: "3.12"
+  FEC_DB_PATH: data/fec.duckdb
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # Job 1: Download FEC bulk files
+  # ─────────────────────────────────────────────────────────────
+  download:
+    name: Download FEC bulk data
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip_download != 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore cached FEC zips
+        id: cache-fec
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          # Cache key includes the cycles so changing cycles busts the cache
+          key: fec-raw-${{ github.event.inputs.cycles || '2024' }}-${{ github.event.inputs.file_types || 'indiv pas2 cn cm ccl weball' }}
+
+      - name: Download FEC bulk files
+        if: steps.cache-fec.outputs.cache-hit != 'true'
+        run: |
+          python scripts/download.py \
+            --cycles ${{ github.event.inputs.cycles || '2024' }} \
+            --file-types ${{ github.event.inputs.file_types || 'indiv pas2 cn cm ccl weball' }} \
+            --extract \
+            --data-dir data/raw
+
+      - name: Upload extracted data as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fec-extracted-${{ github.run_id }}
+          path: data/extracted/
+          retention-days: 3   # Large files — keep briefly, then drop
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 2: Load into DuckDB + run DBT
+  # ─────────────────────────────────────────────────────────────
+  transform:
+    name: Load → DBT transform
+    runs-on: ubuntu-latest
+    needs: download
+    # Also runs if download was skipped (manual flag)
+    if: always() && (needs.download.result == 'success' || github.event.inputs.skip_download == 'true')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download extracted artifact
+        if: ${{ github.event.inputs.skip_download != 'true' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: fec-extracted-${{ github.run_id }}
+          path: data/extracted/
+
+      - name: Load FEC files into DuckDB
+        run: |
+          python scripts/load.py \
+            --cycles ${{ github.event.inputs.cycles || '2024' }} \
+            --extracted-dir data/extracted \
+            --db ${{ env.FEC_DB_PATH }}
+
+      - name: Run DBT seed + run + test
+        working-directory: dbt
+        env:
+          FEC_DB_PATH: "../${{ env.FEC_DB_PATH }}"
+        run: |
+          dbt deps
+          dbt seed --profiles-dir .
+          dbt run  --profiles-dir .
+          dbt test --profiles-dir .
+
+      - name: Export mart results to CSV
+        run: |
+          python - <<'EOF'
+          import duckdb, pathlib, os
+          db = os.environ["FEC_DB_PATH"]
+          out = pathlib.Path("data/exports")
+          out.mkdir(parents=True, exist_ok=True)
+          conn = duckdb.connect(db)
+          for table in [
+              "marts.mart_candidate_funding_summary",
+              "marts.mart_candidate_corruption_score",
+          ]:
+              name = table.split(".")[-1]
+              conn.execute(f"COPY {table} TO '{out}/{name}.csv' (HEADER, DELIMITER ',')")
+              print(f"Exported {table} -> {out}/{name}.csv")
+          conn.close()
+          EOF
+        env:
+          FEC_DB_PATH: ${{ env.FEC_DB_PATH }}
+
+      - name: Upload DuckDB database
+        uses: actions/upload-artifact@v4
+        with:
+          name: fec-duckdb-${{ github.run_id }}
+          path: ${{ env.FEC_DB_PATH }}
+          retention-days: 7
+
+      - name: Upload mart CSVs
+        uses: actions/upload-artifact@v4
+        with:
+          name: fec-results-${{ github.run_id }}
+          path: data/exports/
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────
+  # Job 3: Pipeline summary comment (on manual runs)
+  # ─────────────────────────────────────────────────────────────
+  summarize:
+    name: Pipeline summary
+    runs-on: ubuntu-latest
+    needs: transform
+    if: always()
+
+    steps:
+      - name: Write job summary
+        run: |
+          echo "## FEC Pipeline Run Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Download | ${{ needs.download.result || 'skipped' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Transform (DBT) | ${{ needs.transform.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Cycles:** \`${{ github.event.inputs.cycles || '2024' }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

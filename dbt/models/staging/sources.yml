@@ -1,0 +1,59 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw FEC bulk data loaded from pipe-delimited files into DuckDB by scripts/load.py"
+    schema: raw
+    tables:
+      - name: individual_contributions
+        description: "Individual donor contributions (indiv*.zip). One row per transaction."
+        columns:
+          - name: sub_id
+            description: "Unique transaction identifier"
+            tests: [not_null, unique]
+          - name: transaction_amt
+            tests: [not_null]
+
+      - name: pac_contributions
+        description: "PAC-to-candidate contributions (pas2*.zip)."
+        columns:
+          - name: sub_id
+            tests: [not_null, unique]
+
+      - name: candidates
+        description: "Candidate master file (cn*.zip)."
+        columns:
+          - name: cand_id
+            tests: [not_null, unique]
+
+      - name: committees
+        description: "Committee master file (cm*.zip)."
+        columns:
+          - name: cmte_id
+            tests: [not_null, unique]
+
+      - name: candidate_committee_linkage
+        description: "Links candidates to their principal campaign committees (ccl*.zip)."
+        columns:
+          - name: linkage_id
+            tests: [not_null, unique]
+
+      - name: candidate_financial_summary
+        description: "All-candidate financial summary (weball*.zip), derived from F3/F3P campaign filings. One row per candidate per cycle. Contains self-reported total receipts including unitemized small donations."
+        columns:
+          - name: cand_id
+            description: "FEC candidate ID — joins to candidates.cand_id"
+          - name: fec_election_yr
+            description: "Election cycle year"
+          - name: tot_rec
+            description: "Total receipts (authoritative campaign total, includes unitemized small donors)"
+          - name: ind_con
+            description: "Total individual contributions (itemized + unitemized)"
+          - name: ind_uni_con
+            description: "Unitemized individual contributions (<$200 aggregate — not visible in indiv transaction file)"
+
+      - name: opensecrets_committees
+        description: "OpenSecrets PAC crosswalk — maps FEC committee IDs to real industry category codes. Populated by scripts/download_opensecrets.py. Empty table is created automatically so the pipeline runs without it."
+        columns:
+          - name: fec_id
+            description: "FEC committee ID — joins to committees.cmte_id"

@@ -1,0 +1,94 @@
+keyword,industry,industry_group,priority
+pharma,Pharmaceutical,Pharma & Healthcare,1
+pharmaceutical,Pharmaceutical,Pharma & Healthcare,1
+pfizer,Pharmaceutical,Pharma & Healthcare,1
+merck,Pharmaceutical,Pharma & Healthcare,1
+abbvie,Pharmaceutical,Pharma & Healthcare,1
+johnson and johnson,Pharmaceutical,Pharma & Healthcare,1
+biotech,Biotech,Pharma & Healthcare,2
+bioscience,Biotech,Pharma & Healthcare,2
+health insurance,Health Insurance,Pharma & Healthcare,1
+hospital,Hospital / Health System,Pharma & Healthcare,2
+medical device,Medical Device,Pharma & Healthcare,2
+physician,Healthcare Professionals,Pharma & Healthcare,3
+aipac,Pro-Israel / AIPAC-aligned,Israel / AIPAC-aligned,1
+israel,Pro-Israel / AIPAC-aligned,Israel / AIPAC-aligned,1
+jewish federation,Pro-Israel / AIPAC-aligned,Israel / AIPAC-aligned,1
+pro-israel,Pro-Israel / AIPAC-aligned,Israel / AIPAC-aligned,1
+american israel,Pro-Israel / AIPAC-aligned,Israel / AIPAC-aligned,1
+goldman sachs,Investment Banking,Finance & Banking,1
+jpmorgan,Investment Banking,Finance & Banking,1
+blackrock,Asset Management,Finance & Banking,1
+bank of america,Commercial Banking,Finance & Banking,1
+wells fargo,Commercial Banking,Finance & Banking,1
+citigroup,Commercial Banking,Finance & Banking,1
+hedge fund,Hedge Fund,Finance & Banking,1
+private equity,Private Equity,Finance & Banking,1
+wall street,Finance & Banking,Finance & Banking,2
+securities,Securities / Investment,Finance & Banking,2
+insurance,Insurance,Finance & Banking,2
+real estate,Real Estate,Finance & Banking,2
+mortgage,Mortgage,Finance & Banking,2
+oil,Oil & Gas,Energy & Oil,1
+gas,Oil & Gas,Energy & Oil,1
+petroleum,Oil & Gas,Energy & Oil,1
+exxon,Oil & Gas,Energy & Oil,1
+chevron,Oil & Gas,Energy & Oil,1
+koch,Oil & Gas,Energy & Oil,1
+coal,Coal,Energy & Oil,1
+energy,Energy,Energy & Oil,2
+electric,Electric Utilities,Energy & Oil,2
+utility,Electric Utilities,Energy & Oil,2
+pipeline,Pipelines,Energy & Oil,1
+lockheed,Defense Contractor,Defense & Military,1
+raytheon,Defense Contractor,Defense & Military,1
+boeing defense,Defense Contractor,Defense & Military,1
+northrop,Defense Contractor,Defense & Military,1
+general dynamics,Defense Contractor,Defense & Military,1
+l3 technologies,Defense Contractor,Defense & Military,1
+defense,Defense,Defense & Military,2
+aerospace,Aerospace / Defense,Defense & Military,2
+military,Defense,Defense & Military,2
+google,Big Tech,Tech & Telecom,1
+alphabet,Big Tech,Tech & Telecom,1
+meta,Big Tech,Tech & Telecom,1
+facebook,Big Tech,Tech & Telecom,1
+amazon,Big Tech,Tech & Telecom,1
+apple,Big Tech,Tech & Telecom,1
+microsoft,Big Tech,Tech & Telecom,1
+tech pac,Tech Industry,Tech & Telecom,2
+technology,Tech Industry,Tech & Telecom,3
+telecom,Telecommunications,Tech & Telecom,2
+comcast,Telecommunications,Tech & Telecom,1
+verizon,Telecommunications,Tech & Telecom,1
+at and t,Telecommunications,Tech & Telecom,1
+nra,Gun Rights / NRA,Guns & Weapons,1
+gun rights,Gun Rights / NRA,Guns & Weapons,1
+firearms,Gun Rights / NRA,Guns & Weapons,1
+national rifle,Gun Rights / NRA,Guns & Weapons,1
+tobacco,Tobacco,Tobacco,1
+altria,Tobacco,Tobacco,1
+philip morris,Tobacco,Tobacco,1
+casino,Gambling,Gambling,1
+gambling,Gambling,Gambling,1
+mgm,Gambling,Gambling,1
+las vegas sands,Gambling,Gambling,1
+gop,Republican Party,Party Committee,1
+democratic,Democratic Party,Party Committee,1
+republican,Republican Party,Party Committee,1
+rnc,Republican Party,Party Committee,1
+dnc,Democratic Party,Party Committee,1
+dccc,Democratic Party,Party Committee,1
+nrcc,Republican Party,Party Committee,1
+dscc,Democratic Party,Party Committee,1
+nrsc,Republican Party,Party Committee,1
+teachers,Education / Teachers Union,Labor,1
+union,Labor Union,Labor,2
+afl-cio,Labor Union,Labor,1
+afl cio,Labor Union,Labor,1
+seiu,Labor Union,Labor,1
+teamsters,Labor Union,Labor,1
+farmers,Agriculture,Agriculture,2
+agriculture,Agriculture,Agriculture,2
+farm bureau,Agriculture,Agriculture,1
+agribusiness,Agribusiness,Agriculture,1
